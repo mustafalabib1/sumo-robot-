@@ -49,24 +49,28 @@ void setup() {
 }
 
 void loop() {
-  if (digitalRead(IR_FRONT1) || digitalRead(IR_FRONT2))
-    rotateDegrees(180);
-  else
-    moveCar(255, 255);
+  if (digitalRead(IR_FRONT1)) {
+    moveCar(-MAX_SPEED, -MAX_SPEED);
+    delay(15);
+    rotateDegrees(90);
+    rotateDegreesWithUltrasonic(random(0, 90));
+  } else if (digitalRead(IR_FRONT2)) {
+    moveCar(-MAX_SPEED, -MAX_SPEED);
+    delay(15);
+    rotateDegrees(-90);
+    rotateDegrees(random(-90, 0));
+  } else
+    moveCar(MAX_SPEED, MAX_SPEED);
 }
 
 void moveCar(int leftSpeed, int rightSpeed) {
   digitalWrite(IN3, leftSpeed > 0);
   digitalWrite(IN4, leftSpeed < 0);
   analogWrite(ENB, abs(leftSpeed));
-  // int FleftSpeed=map(leftSpeed,0,255,0,255*133/170);
-  // analogWrite(FENB, abs(FleftSpeed));
 
   digitalWrite(IN1, rightSpeed > 0);
   digitalWrite(IN2, rightSpeed < 0);
   analogWrite(ENA, abs(rightSpeed));
-  // int RleftSpeed=map(rightSpeed,0,255,0,255*133/170);
-  // analogWrite(FENA, abs(RleftSpeed));
 }
 void stopCar() {
   moveCar(0, 0);
@@ -87,7 +91,26 @@ void rotateDegrees(float degrees) {
   delay(timeMillis);
   moveCar(0, 0);  // Stop
 }
+void rotateDegreesWithUltrasonic(float degrees) {
+  float arcLength = PI * TRACK_WIDTH * (abs(degrees) / 360.0);
+  float wheelCircumference = PI * WHEEL_DIAMETER;
+  float revolutions = arcLength / wheelCircumference;
+  float timeSeconds = (revolutions * 60.0) / MOTOR_RPM;
+  int timeMillis = (int)(timeSeconds * 1000 * 1.895);
 
+  // Left wheel backward, right wheel forward for in-place rotation
+  if (degrees < 0)
+    moveCar(255, -255);
+  else
+    moveCar(-255, 255);
+  for (int i = 0; i < timeMillis; i += 5) {
+    if (readUltrasonic() < 20) {
+      moveCar(0, 0);  // Stop
+      return;
+    }
+    delay(5);
+  }
+}
 double readUltrasonic() {
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
