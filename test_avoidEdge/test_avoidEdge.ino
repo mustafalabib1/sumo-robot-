@@ -1,23 +1,18 @@
-#include <Arduino.h>
-
 // === Motor Driver Pins (L298N) ===
-#define ENA 11
-#define FENA 10
+#define ENA 10
 #define IN1 13
 #define IN2 12
 #define IN3 8
 #define IN4 7
-#define ENB 6
-#define FENB 5
-
+#define ENB 5
 // === Ultrasonic Sensor ===
 #define TRIG_PIN 9
 #define ECHO_PIN 4
 
 // === IR Edge Sensors ===
 #define IR_LEFT A0
-#define IR_RIGHT A1
-#define IR_FRONT A2
+#define IR_FRONT2 A1
+#define IR_FRONT1 A2
 #define IR_BACK A3
 
 // === Speed Settings ===
@@ -50,47 +45,45 @@ void setup() {
   Serial.begin(9600);
   initPins();
   randomSeed(analogRead(A5));
+  // delay(10000);
 }
 
 void loop() {
-  moveCar(128, 128);
-  avoidEdge();  // Move to edge and see if it responds
-}
-
-/// @brief Compute linear speed of a wheel from its RPM
-/// @param rpm   Revolutions per minute
-/// @return      Linear speed in meters per second (m/s)
-double speedFromRPM(double rpm) {
-  const double diameter_m = 0.065;           // 65 mm = 0.065 m
-  double circumference = M_PI * diameter_m;  // π·D
-  return (rpm * circumference) / 60.0;       // convert per minute → per second
+  if (digitalRead(IR_FRONT1) || digitalRead(IR_FRONT2))
+    rotateDegrees(180);
+  else
+    moveCar(255, 255);
 }
 
 void moveCar(int leftSpeed, int rightSpeed) {
   digitalWrite(IN3, leftSpeed > 0);
   digitalWrite(IN4, leftSpeed < 0);
   analogWrite(ENB, abs(leftSpeed));
-  analogWrite(FENB, abs(leftSpeed * 133 / 170.0));
+  // int FleftSpeed=map(leftSpeed,0,255,0,255*133/170);
+  // analogWrite(FENB, abs(FleftSpeed));
 
   digitalWrite(IN1, rightSpeed > 0);
   digitalWrite(IN2, rightSpeed < 0);
   analogWrite(ENA, abs(rightSpeed));
-  analogWrite(FENA, abs(rightSpeed * 133 / 170.0));
+  // int RleftSpeed=map(rightSpeed,0,255,0,255*133/170);
+  // analogWrite(FENA, abs(RleftSpeed));
 }
-
 void stopCar() {
   moveCar(0, 0);
 }
 
-void rotateDegrees(float degrees, int speed) {
-  float arcLength = PI * TRACK_WIDTH * (degrees / 360.0);
+void rotateDegrees(float degrees) {
+  float arcLength = PI * TRACK_WIDTH * (abs(degrees) / 360.0);
   float wheelCircumference = PI * WHEEL_DIAMETER;
   float revolutions = arcLength / wheelCircumference;
   float timeSeconds = (revolutions * 60.0) / MOTOR_RPM;
-  int timeMillis = (int)(timeSeconds * 1000);
+  int timeMillis = (int)(timeSeconds * 1000 * 1.895);
 
   // Left wheel backward, right wheel forward for in-place rotation
-  moveCar(-speed, speed);
+  if (degrees < 0)
+    moveCar(255, -255);
+  else
+    moveCar(-255, 255);
   delay(timeMillis);
   moveCar(0, 0);  // Stop
 }
@@ -108,25 +101,19 @@ double readUltrasonic() {
 }
 
 void avoidEdge() {
-  if (digitalRead(IR_LEFT)) {
-    moveCar(SLOW_SPEED, -SLOW_SPEED);
-    DelayWithEdgeAvoidance(AVOID_DELAY);
-  } else if (digitalRead(IR_RIGHT)) {
-    moveCar(-SLOW_SPEED, SLOW_SPEED);
-    DelayWithEdgeAvoidance(AVOID_DELAY);
-  } else if (digitalRead(IR_FRONT)) {
-    moveCar(-SLOW_SPEED, -SLOW_SPEED);
-    DelayWithEdgeAvoidance(AVOID_DELAY);
-  } else if (digitalRead(IR_BACK)) {
-    moveCar(MAX_SPEED, MAX_SPEED);
-    DelayWithEdgeAvoidance(AVOID_DELAY);
-  }
+  if (digitalRead(IR_FRONT1) || digitalRead(IR_FRONT2))
+    rotateDegrees(180);
+  else if (digitalRead(IR_BACK)) {
+    moveCar(255, 255);
+    DelayWithEdgeAvoidance(50);
+  } else
+    moveCar(255, 255);
 }
 void DelayWithEdgeAvoidance(int delayTime) {
   unsigned long startTime = millis();
   while (millis() - startTime < delayTime) {
     avoidEdge();
-    delay(10);  // Small delay to prevent blocking
+    delay(5);  // Small delay to prevent blocking
   }
 }
 void attackOpponent() {
@@ -158,7 +145,7 @@ void randomSearch() {
   }
 
   // Move forward until front IR detects edge
-  while (digitalRead(IR_FRONT) == LOW) {
+  while (digitalRead(IR_FRONT1) == LOW && digitalRead(IR_FRONT2) == LOW) {
     moveCar(MAX_SPEED, MAX_SPEED);
     delay(5);  // Short delay for sensor stability
   }
@@ -170,20 +157,19 @@ void randomSearch() {
   int angle = random(225, 316);
   rotateDegrees(angle, MAX_SPEED);
 }
-
 void initPins() {
   pinMode(ENA, OUTPUT);
-  pinMode(FENA, OUTPUT);
+  // pinMode(FENA, OUTPUT);
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
   pinMode(ENB, OUTPUT);
-  pinMode(FENB, OUTPUT);
+  // pinMode(FENB, OUTPUT);
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
   pinMode(IR_LEFT, INPUT);
-  pinMode(IR_RIGHT, INPUT);
-  pinMode(IR_FRONT, INPUT);
+  pinMode(IR_FRONT2, INPUT);
+  pinMode(IR_FRONT1, INPUT);
   pinMode(IR_BACK, INPUT);
 }

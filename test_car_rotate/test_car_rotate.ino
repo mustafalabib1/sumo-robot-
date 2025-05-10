@@ -12,8 +12,8 @@
 
 // === IR Edge Sensors ===
 #define IR_LEFT A0
-#define IR_RIGHT A1
-#define IR_FRONT A2
+#define IR_FRONT2 A1
+#define IR_FRONT1 A2
 #define IR_BACK A3
 
 // === Speed Settings ===
@@ -108,7 +108,7 @@ void initPins() {
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
   pinMode(IR_LEFT, INPUT);
-  pinMode(IR_RIGHT, INPUT);
-  pinMode(IR_FRONT, INPUT);
+  pinMode(IR_FRONT2, INPUT);
+  pinMode(IR_FRONT1, INPUT);
   pinMode(IR_BACK, INPUT);
 }

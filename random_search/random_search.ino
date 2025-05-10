@@ -12,8 +12,8 @@
 
 // === IR Edge Sensors ===
 #define IR_LEFT A0
-#define IR_RIGHT A1
-#define IR_FRONT A2
+#define IR_FRONT2 A1
+#define IR_FRONT1 A2
 #define IR_BACK A3
 
 // === Speed Settings ===
@@ -32,7 +32,6 @@
 float distance = 0, preDistance = 1000;
 
 void DelayWithEdgeAvoidance(int delayTime);
-double speedFromRPM(double rpm);
 void moveCar(int leftSpeed, int rightSpeed);
 void stopCar();
 void rotateDegrees(float degrees);
@@ -46,20 +45,14 @@ void setup() {
   Serial.begin(9600);
   initPins();
   randomSeed(analogRead(A5));
+  delay(5000);
 }
 
 void loop() {
-  randomSearch();
+  // randomSearch();
+  avoidEdge();
 }
 
-/// @brief Compute linear speed of a wheel from its RPM
-/// @param rpm   Revolutions per minute
-/// @return      Linear speed in meters per second (m/s)
-double speedFromRPM(double rpm) {
-  const double diameter_m = 0.065;           // 65 mm = 0.065 m
-  double circumference = M_PI * diameter_m;  // π·D
-  return (rpm * circumference) / 60.0;       // convert per minute → per second
-}
 void moveCar(int leftSpeed, int rightSpeed) {
   digitalWrite(IN3, leftSpeed > 0);
   digitalWrite(IN4, leftSpeed < 0);
@@ -103,20 +96,17 @@ double readUltrasonic() {
 }
 
 void avoidEdge() {
-  if (digitalRead(IR_LEFT)) {
-    moveCar(SLOW_SPEED, -SLOW_SPEED);
-    DelayWithEdgeAvoidance(AVOID_DELAY);
-  } else if (digitalRead(IR_RIGHT)) {
-    moveCar(-SLOW_SPEED, SLOW_SPEED);
-    DelayWithEdgeAvoidance(AVOID_DELAY);
-  } else if (digitalRead(IR_FRONT)) {
-    moveCar(-SLOW_SPEED, -SLOW_SPEED);
-    DelayWithEdgeAvoidance(AVOID_DELAY);
+  if (digitalRead(IR_FRONT1) || digitalRead(IR_FRONT2)) {
+    // Rotate randomly between 225° to 315°
+    int angle = random(225, 316);
+    rotateDegrees(angle);
   } else if (digitalRead(IR_BACK)) {
-    moveCar(MAX_SPEED, MAX_SPEED);
-    DelayWithEdgeAvoidance(AVOID_DELAY);
-  }
+    moveCar(255, 255);
+    DelayWithEdgeAvoidance(50);
+  } else
+    moveCar(255, 255);
 }
+
 void DelayWithEdgeAvoidance(int delayTime) {
   unsigned long startTime = millis();
   while (millis() - startTime < delayTime) {
@@ -153,7 +143,7 @@ void randomSearch() {
   }
 
   // Move forward until front IR detects edge
-  while (digitalRead(IR_FRONT) == LOW) {
+  while (digitalRead(IR_FRONT2) == LOW && digitalRead(IR_FRONT1) == LOW) {
     moveCar(MAX_SPEED, MAX_SPEED);
     delay(5);  // Short delay for sensor stability
   }
@@ -168,17 +158,17 @@ void randomSearch() {
 
 void initPins() {
   pinMode(ENA, OUTPUT);
+  // pinMode(FENA, OUTPUT);
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
   pinMode(ENB, OUTPUT);
-
+  // pinMode(FENB, OUTPUT);
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
-
   pinMode(IR_LEFT, INPUT);
-  pinMode(IR_RIGHT, INPUT);
-  pinMode(IR_FRONT, INPUT);
+  pinMode(IR_FRONT2, INPUT);
+  pinMode(IR_FRONT1, INPUT);
   pinMode(IR_BACK, INPUT);
 }

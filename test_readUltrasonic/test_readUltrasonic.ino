@@ -17,7 +17,7 @@ void loop() {
   double d = readUltrasonic();
   Serial.print("Distance: ");
   Serial.println(d);
-  delay(500);
+  delay(5);
 }
 
 
