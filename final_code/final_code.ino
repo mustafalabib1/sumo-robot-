@@ -29,6 +29,7 @@
 #define TRACK_WIDTH 0.2       // in meters
 #define WHEEL_DIAMETER 0.065  // in meters
 #define MOTOR_RPM 133         // RPM of the motor
+#define ROTATION_CALIBRATION 1.895
 
 float distance = 0, preDistance = 1000;
 
@@ -51,14 +52,14 @@ void setup() {
 }
 
 void loop() {
-  if (digitalRead(IR_FRONT1)==LOW) {
+  if (digitalRead(IR_FRONT1)) {
     moveCar(-MAX_SPEED, -MAX_SPEED);
-    delay(100);
+    delay(200);
     rotateDegrees(90);
     rotateDegreesWithUltrasonic(random(0, 90));
-  } else if (digitalRead(IR_FRONT2)==LOW) {
+  } else if (digitalRead(IR_FRONT2)) {
     moveCar(-MAX_SPEED, -MAX_SPEED);
-    delay(100);
+    delay(200);
     rotateDegrees(-90);
     rotateDegreesWithUltrasonic(-random(0, 90));
   } else {
@@ -92,7 +93,7 @@ void rotateDegrees(float degrees) {
   float wheelCircumference = PI * WHEEL_DIAMETER;
   float revolutions = arcLength / wheelCircumference;
   float timeSeconds = (revolutions * 60.0) / MOTOR_RPM;
-  int timeMillis = (int)(timeSeconds * 1000 * 1.895);
+  int timeMillis = (int)(timeSeconds * 1000 * ROTATION_CALIBRATION);
 
   // Left wheel backward, right wheel forward for in-place rotation
   if (degrees < 0)
@@ -108,21 +109,24 @@ void rotateDegreesWithUltrasonic(float degrees) {
   float wheelCircumference = PI * WHEEL_DIAMETER;
   float revolutions = arcLength / wheelCircumference;
   float timeSeconds = (revolutions * 60.0) / MOTOR_RPM;
-  int timeMillis = (int)(timeSeconds * 1000 * 1.895);
+  unsigned long duration = (unsigned long)(timeSeconds * 1000 * ROTATION_CALIBRATION);
 
-  // Left wheel backward, right wheel forward for in-place rotation
   if (degrees < 0)
     moveCar(255, -255);
   else
     moveCar(-255, 255);
-  for (int i = 0; i < timeMillis; i += 5) {
+
+  unsigned long start = millis();
+  while (millis() - start < duration) {
     if (readUltrasonic(ECHO_CENTER) < 20) {
-      moveCar(0, 0);  // Stop
+      stopCar();
       return;
     }
     delay(5);
   }
+  stopCar();
 }
+
 double readUltrasonic(int echoPin) {
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
@@ -134,24 +138,6 @@ double readUltrasonic(int echoPin) {
   if (duration == 0)
     return 999;
   return duration * 0.034 / 2.0;
-}
-
-void avoidEdge() {
-  if (digitalRead(IR_FRONT1) || digitalRead(IR_FRONT2))
-    rotateDegrees(180);
-  else if (digitalRead(IR_BACK)) {
-    moveCar(255, 255);
-    DelayWithEdgeAvoidance(50);
-  } else
-    moveCar(255, 255);
-}
-
-void DelayWithEdgeAvoidance(int delayTime) {
-  unsigned long startTime = millis();
-  while (millis() - startTime < delayTime) {
-    avoidEdge();
-    delay(5);  // Small delay to prevent blocking
-  }
 }
 
 void initPins() {
