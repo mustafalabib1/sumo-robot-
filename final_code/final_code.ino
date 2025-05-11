@@ -30,6 +30,7 @@
 #define WHEEL_DIAMETER 0.065  // in meters
 #define MOTOR_RPM 133         // RPM of the motor
 #define ROTATION_CALIBRATION 1.895
+#define UltrasonicLimite 30
 
 float distance = 0, preDistance = 1000;
 
@@ -52,22 +53,25 @@ void setup() {
 }
 
 void loop() {
-  if (digitalRead(IR_FRONT1)) {
+  if (digitalRead(IR_FRONT1)==LOW) {
     moveCar(-MAX_SPEED, -MAX_SPEED);
     delay(200);
     rotateDegrees(90);
     rotateDegreesWithUltrasonic(random(0, 90));
-  } else if (digitalRead(IR_FRONT2)) {
+  } else if (digitalRead(IR_FRONT2)==LOW) {
     moveCar(-MAX_SPEED, -MAX_SPEED);
     delay(200);
     rotateDegrees(-90);
     rotateDegreesWithUltrasonic(-random(0, 90));
   } else {
+    double distCenter = readUltrasonic(ECHO_CENTER);
     double distLeft = readUltrasonic(ECHO_LEFT);
     double distRight = readUltrasonic(ECHO_RIGHT);
-    if (distLeft < 20)
+    if (distCenter <= 10)
+      moveCar(MAX_SPEED, MAX_SPEED);
+    else if (distLeft < UltrasonicLimite)
       rotateDegreesWithUltrasonic(90);
-    else if (distRight < 20)
+    else if (distRight < UltrasonicLimite)
       rotateDegreesWithUltrasonic(-90);
     else
       moveCar(MAX_SPEED, MAX_SPEED);
@@ -97,9 +101,9 @@ void rotateDegrees(float degrees) {
 
   // Left wheel backward, right wheel forward for in-place rotation
   if (degrees < 0)
-    moveCar(255, -255);
+    moveCar(MAX_SPEED, -MAX_SPEED);
   else
-    moveCar(-255, 255);
+    moveCar(-MAX_SPEED, MAX_SPEED);
   delay(timeMillis);
   moveCar(0, 0);  // Stop
 }
@@ -112,13 +116,13 @@ void rotateDegreesWithUltrasonic(float degrees) {
   unsigned long duration = (unsigned long)(timeSeconds * 1000 * ROTATION_CALIBRATION);
 
   if (degrees < 0)
-    moveCar(255, -255);
+    moveCar(MAX_SPEED, -MAX_SPEED);
   else
-    moveCar(-255, 255);
+    moveCar(-MAX_SPEED, MAX_SPEED);
 
   unsigned long start = millis();
   while (millis() - start < duration) {
-    if (readUltrasonic(ECHO_CENTER) < 20) {
+    if (readUltrasonic(ECHO_CENTER) < UltrasonicLimite) {
       stopCar();
       return;
     }
