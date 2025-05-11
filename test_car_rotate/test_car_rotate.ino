@@ -50,9 +50,9 @@ void setup() {
 
 void loop() {
   delay(3000);
-  rotateDegrees(360);  // Rotate 360 degrees in place
+  rotateDegrees(90);  // Rotate 360 degrees in place
   delay(3000);
-  rotateDegrees(-360);  // Rotate 360 degrees in place
+  rotateDegrees(-180);  // Rotate 360 degrees in place
   delay(3000);
 //   rotateDegrees(45, 255);  
 //   delay(3000);

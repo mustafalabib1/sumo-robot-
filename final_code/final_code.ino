@@ -8,8 +8,8 @@
 // === Ultrasonic Sensor ===
 #define TRIG_PIN 9
 #define ECHO_CENTER 4
-#define ECHO_RIGHT 3
-#define ECHO_LEFT 11
+#define ECHO_RIGHT 11
+#define ECHO_LEFT 3
 
 // === IR Edge Sensors ===
 #define IR_LEFT A0
@@ -51,23 +51,26 @@ void setup() {
 }
 
 void loop() {
-  double center = readUltrasonic(ECHO_CENTER);
-  double right = readUltrasonic(ECHO_RIGHT);
-  double left = readUltrasonic(ECHO_LEFT);
-
-  Serial.print("Center: ");
-  Serial.print(center);
-  Serial.print(" cm\t");
-
-  Serial.print("Right: ");
-  Serial.print(right);
-  Serial.print(" cm\t");
-
-  Serial.print("Left: ");
-  Serial.print(left);
-  Serial.println(" cm");
-
-  delay(500);
+  if (digitalRead(IR_FRONT1)==LOW) {
+    moveCar(-MAX_SPEED, -MAX_SPEED);
+    delay(100);
+    rotateDegrees(90);
+    rotateDegreesWithUltrasonic(random(0, 90));
+  } else if (digitalRead(IR_FRONT2)==LOW) {
+    moveCar(-MAX_SPEED, -MAX_SPEED);
+    delay(100);
+    rotateDegrees(-90);
+    rotateDegreesWithUltrasonic(-random(0, 90));
+  } else {
+    double distLeft = readUltrasonic(ECHO_LEFT);
+    double distRight = readUltrasonic(ECHO_RIGHT);
+    if (distLeft < 20)
+      rotateDegreesWithUltrasonic(90);
+    else if (distRight < 20)
+      rotateDegreesWithUltrasonic(-90);
+    else
+      moveCar(MAX_SPEED, MAX_SPEED);
+  }
 }
 
 void moveCar(int leftSpeed, int rightSpeed) {
@@ -120,7 +123,6 @@ void rotateDegreesWithUltrasonic(float degrees) {
     delay(5);
   }
 }
-
 double readUltrasonic(int echoPin) {
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
@@ -154,13 +156,12 @@ void DelayWithEdgeAvoidance(int delayTime) {
 
 void initPins() {
   pinMode(ENA, OUTPUT);
-  // pinMode(FENA, OUTPUT);
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
   pinMode(ENB, OUTPUT);
-  // pinMode(FENB, OUTPUT);
+
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_CENTER, INPUT);
   pinMode(ECHO_RIGHT, INPUT);

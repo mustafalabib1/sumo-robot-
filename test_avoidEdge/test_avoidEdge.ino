@@ -7,7 +7,9 @@
 #define ENB 5
 // === Ultrasonic Sensor ===
 #define TRIG_PIN 9
-#define ECHO_PIN 4
+#define ECHO_CENTER 4
+#define ECHO_RIGHT 11
+#define ECHO_LEFT 3
 
 // === IR Edge Sensors ===
 #define IR_LEFT A0
@@ -36,7 +38,7 @@ void moveCar(int leftSpeed, int rightSpeed);
 void stopCar();
 void rotateDegrees(float degrees, int speed);
 void avoidEdge();
-double readUltrasonic();
+double readUltrasonic(int echoPin);
 void attackOpponent();
 void randomSearch();
 void initPins();
@@ -51,16 +53,23 @@ void setup() {
 void loop() {
   if (digitalRead(IR_FRONT1)) {
     moveCar(-MAX_SPEED, -MAX_SPEED);
-    delay(15);
+    delay(100);
     rotateDegrees(90);
-    rotateDegreesWithUltrasonic(random(0, 90));
   } else if (digitalRead(IR_FRONT2)) {
     moveCar(-MAX_SPEED, -MAX_SPEED);
-    delay(15);
+    delay(100);
     rotateDegrees(-90);
-    rotateDegrees(random(-90, 0));
-  } else
-    moveCar(MAX_SPEED, MAX_SPEED);
+    rotateDegrees(-random(0, 90));
+  } else {
+    double distLeft = readUltrasonic(ECHO_LEFT);
+    double distRight = readUltrasonic(ECHO_RIGHT);
+    if (distLeft < 20)
+      rotateDegreesWithUltrasonic(90);
+    else if (distRight < 20)
+      rotateDegreesWithUltrasonic(-90);
+    else
+      moveCar(MAX_SPEED, MAX_SPEED);
+  }
 }
 
 void moveCar(int leftSpeed, int rightSpeed) {
@@ -72,6 +81,7 @@ void moveCar(int leftSpeed, int rightSpeed) {
   digitalWrite(IN2, rightSpeed < 0);
   analogWrite(ENA, abs(rightSpeed));
 }
+
 void stopCar() {
   moveCar(0, 0);
 }
@@ -91,6 +101,7 @@ void rotateDegrees(float degrees) {
   delay(timeMillis);
   moveCar(0, 0);  // Stop
 }
+
 void rotateDegreesWithUltrasonic(float degrees) {
   float arcLength = PI * TRACK_WIDTH * (abs(degrees) / 360.0);
   float wheelCircumference = PI * WHEEL_DIAMETER;
@@ -104,22 +115,23 @@ void rotateDegreesWithUltrasonic(float degrees) {
   else
     moveCar(-255, 255);
   for (int i = 0; i < timeMillis; i += 5) {
-    if (readUltrasonic() < 20) {
+    if (readUltrasonic(ECHO_CENTER) < 20) {
       moveCar(0, 0);  // Stop
       return;
     }
     delay(5);
   }
 }
-double readUltrasonic() {
+double readUltrasonic(int echoPin) {
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
   digitalWrite(TRIG_PIN, HIGH);
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
-  long duration = pulseIn(ECHO_PIN, HIGH, 20000);  // timeout for safety
+
+  long duration = pulseIn(echoPin, HIGH, 20000);
   if (duration == 0)
-    return 999;  // if no echo
+    return 999;
   return duration * 0.034 / 2.0;
 }
 
@@ -132,6 +144,7 @@ void avoidEdge() {
   } else
     moveCar(255, 255);
 }
+
 void DelayWithEdgeAvoidance(int delayTime) {
   unsigned long startTime = millis();
   while (millis() - startTime < delayTime) {
@@ -139,58 +152,19 @@ void DelayWithEdgeAvoidance(int delayTime) {
     delay(5);  // Small delay to prevent blocking
   }
 }
-void attackOpponent() {
-  preDistance = readUltrasonic();
-  distance = preDistance;
 
-  while (true) {
-    distance = readUltrasonic();
-    if (distance >= preDistance || distance > OPPONENT_DISTANCE || distance <= 0)
-      break;
-
-    moveCar(MAX_SPEED, MAX_SPEED);
-    preDistance = distance;
-    delay(20);
-  }
-
-  stopCar();
-}
-
-void randomSearch() {
-
-  distance = readUltrasonic();
-  Serial.print("Distance: ");
-  Serial.println(distance);
-
-  if (distance > 0 && distance < OPPONENT_DISTANCE) {
-    attackOpponent();
-    return;
-  }
-
-  // Move forward until front IR detects edge
-  while (digitalRead(IR_FRONT1) == LOW && digitalRead(IR_FRONT2) == LOW) {
-    moveCar(MAX_SPEED, MAX_SPEED);
-    delay(5);  // Short delay for sensor stability
-  }
-  moveCar(-SLOW_SPEED, -SLOW_SPEED);
-  delay(25);  // Move backward for 25ms
-  stopCar();
-
-  // Rotate randomly between 225° to 315°
-  int angle = random(225, 316);
-  rotateDegrees(angle, MAX_SPEED);
-}
 void initPins() {
   pinMode(ENA, OUTPUT);
-  // pinMode(FENA, OUTPUT);
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
   pinMode(ENB, OUTPUT);
-  // pinMode(FENB, OUTPUT);
+
   pinMode(TRIG_PIN, OUTPUT);
-  pinMode(ECHO_PIN, INPUT);
+  pinMode(ECHO_CENTER, INPUT);
+  pinMode(ECHO_RIGHT, INPUT);
+  pinMode(ECHO_LEFT, INPUT);
   pinMode(IR_LEFT, INPUT);
   pinMode(IR_FRONT2, INPUT);
   pinMode(IR_FRONT1, INPUT);
