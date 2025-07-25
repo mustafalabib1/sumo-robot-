@@ -49,16 +49,16 @@ void setup() {
   Serial.begin(9600);
   initPins();
   randomSeed(analogRead(A5));
-  // delay(10000);
+  delay(5000);
 }
 
 void loop() {
-  if (digitalRead(IR_FRONT1)==LOW) {
+  if (digitalRead(IR_FRONT1)) {
     moveCar(-MAX_SPEED, -MAX_SPEED);
     delay(200);
     rotateDegrees(90);
     rotateDegreesWithUltrasonic(random(0, 90));
-  } else if (digitalRead(IR_FRONT2)==LOW) {
+  } else if (digitalRead(IR_FRONT2)) {
     moveCar(-MAX_SPEED, -MAX_SPEED);
     delay(200);
     rotateDegrees(-90);
